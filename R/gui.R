@@ -37,7 +37,9 @@
 #' @param design Initial design; the teaching example is used when omitted.
 #' @param criterion Initial criterion.
 #' @param queue Optional LibeRties local or remote queue.
-#' @param host,port,launch.browser Passed to [shiny::runApp()].
+#' @param host,port,launch.browser Passed to [shiny::runApp()]. Set
+#'   `launch.browser = NULL` to return the Shiny application object for hosted
+#'   deployment.
 #' @return Invisibly, the Shiny app.
 #' @export
 liberality_gui <- function(design = NULL, criterion = lity_criterion_D(), queue = NULL,
@@ -142,6 +144,7 @@ liberality_gui <- function(design = NULL, criterion = lity_criterion_D(), queue 
     }, ignoreInit = TRUE)
   }
   app <- shiny::shinyApp(ui, server)
+  if (is.null(launch.browser)) return(app)
   shiny::runApp(app, host = host, port = port, launch.browser = launch.browser)
   invisible(app)
 }

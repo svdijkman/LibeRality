@@ -1,5 +1,12 @@
+# LibeRality 0.1.3
+
+- Allows the GUI to return its Shiny application object for hosted deployment.
+
 # LibeRality 0.1.2
 
+- Replaces the RcppEigen dependency with the direct Eigen 5.0.1 interface
+  exported by LibeRtAD. Expected-information assembly now shares the same
+  pinned C++ linear-algebra implementation as LibeRation.
 - Replaces the provisional workbench mark with the high-resolution,
   transparent LibeR dove, recoloured in LibeRality's warm amber design palette
   and shared by the browser favicon and application header.

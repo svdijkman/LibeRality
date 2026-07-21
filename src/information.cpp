@@ -1,10 +1,10 @@
 #if defined(__GNUC__)
-#pragma GCC diagnostic ignored "-Wignored-attributes"
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-#include <RcppEigen.h>
+#include <Rcpp.h>
+#include <LibeRtAD/eigen_r.hpp>
 
-// [[Rcpp::depends(RcppEigen)]]
+// [[Rcpp::depends(LibeRtAD)]]
 // [[Rcpp::plugins(cpp17)]]
 
 namespace {
@@ -42,10 +42,12 @@ Eigen::MatrixXd symmetric_inverse(const Eigen::MatrixXd& input,
 // Dmu has one column per estimated parameter. dV contains the corresponding
 // covariance derivatives. This covers mean, covariance, and cross information.
 // [[Rcpp::export]]
-Rcpp::List lity_fim_cpp(const Eigen::MatrixXd& Dmu,
-                        const Eigen::MatrixXd& V,
+Rcpp::List lity_fim_cpp(const Rcpp::NumericMatrix& Dmu_input,
+                        const Rcpp::NumericMatrix& V_input,
                         const Rcpp::List& dV,
                         double tolerance = 1e-10) {
+  const Eigen::MatrixXd Dmu = libertad::r_matrix_map(Dmu_input);
+  const Eigen::MatrixXd V = libertad::r_matrix_map(V_input);
   if (V.rows() != V.cols() || V.rows() != Dmu.rows()) {
     Rcpp::stop("Dmu and V dimensions are incompatible.");
   }
@@ -59,7 +61,8 @@ Rcpp::List lity_fim_cpp(const Eigen::MatrixXd& Dmu,
   std::vector<Eigen::MatrixXd> products;
   products.reserve(static_cast<std::size_t>(parameters));
   for (int i = 0; i < parameters; ++i) {
-    Eigen::MatrixXd derivative = Rcpp::as<Eigen::MatrixXd>(dV[i]);
+    Rcpp::NumericMatrix derivative_input(dV[i]);
+    Eigen::MatrixXd derivative = libertad::r_matrix_map(derivative_input);
     if (derivative.rows() != V.rows() || derivative.cols() != V.cols()) {
       Rcpp::stop("A covariance derivative has incompatible dimensions.");
     }
@@ -76,16 +79,18 @@ Rcpp::List lity_fim_cpp(const Eigen::MatrixXd& Dmu,
   }
   information = 0.5 * (information + information.transpose());
   return Rcpp::List::create(
-    Rcpp::Named("information") = information,
-    Rcpp::Named("inverse_observation_covariance") = inverse,
+    Rcpp::Named("information") = libertad::eigen_matrix_to_r(information),
+    Rcpp::Named("inverse_observation_covariance") = libertad::eigen_matrix_to_r(inverse),
     Rcpp::Named("observation_covariance_rank") = covariance_rank,
-    Rcpp::Named("observation_covariance_eigenvalues") = covariance_eigenvalues
+    Rcpp::Named("observation_covariance_eigenvalues") =
+      libertad::eigen_vector_to_r(covariance_eigenvalues)
   );
 }
 
 // [[Rcpp::export]]
-Rcpp::List lity_matrix_metrics_cpp(const Eigen::MatrixXd& information,
+Rcpp::List lity_matrix_metrics_cpp(const Rcpp::NumericMatrix& information_input,
                                    double tolerance = 1e-10) {
+  const Eigen::MatrixXd information = libertad::r_matrix_map(information_input);
   if (information.rows() != information.cols()) Rcpp::stop("Information matrix must be square.");
   int rank = 0;
   Eigen::VectorXd eigenvalues;
@@ -105,8 +110,8 @@ Rcpp::List lity_matrix_metrics_cpp(const Eigen::MatrixXd& information,
   if (rank < information.rows()) log_determinant = R_NegInf;
   const double condition = (rank > 0 && R_finite(minimum_positive)) ? maximum / minimum_positive : R_PosInf;
   return Rcpp::List::create(
-    Rcpp::Named("covariance") = covariance,
-    Rcpp::Named("eigenvalues") = eigenvalues,
+    Rcpp::Named("covariance") = libertad::eigen_matrix_to_r(covariance),
+    Rcpp::Named("eigenvalues") = libertad::eigen_vector_to_r(eigenvalues),
     Rcpp::Named("rank") = rank,
     Rcpp::Named("condition_number") = condition,
     Rcpp::Named("log_determinant") = log_determinant,

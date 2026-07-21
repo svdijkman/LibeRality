@@ -20,7 +20,9 @@ liberality_gui(
 
 \item{queue}{Optional LibeRties local or remote queue.}
 
-\item{host, port, launch.browser}{Passed to [shiny::runApp()].}
+\item{host, port, launch.browser}{Passed to [shiny::runApp()]. Set
+`launch.browser = NULL` to return the Shiny application object for hosted
+deployment.}
 }
 \value{
 Invisibly, the Shiny app.
