@@ -93,3 +93,9 @@ result, a JSON manifest, and a self-contained HTML report. PFIM 7.0.3's
 `Combined1` convention is not mathematically equivalent to independent
 additive-plus-proportional error, so that fixture is explicitly covered by
 LibeRality and PopED only.
+
+## AI-assisted development
+
+GPT-5.6 was used as an AI engineering collaborator to help implement and review
+the design criteria, optimisation workflows, GUI, tests, documentation, and PopED/PFIM validation harness.
+Scientific direction, architecture, validation criteria, and release decisions remain the responsibility of the project owner.
