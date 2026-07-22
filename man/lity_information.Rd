@@ -21,9 +21,9 @@ lity_information(
 
 \item{tolerance}{Numerical rank tolerance.}
 
-\item{approximation}{Information approximation. \code{"full_gaussian"}
-includes covariance derivatives for fixed effects; \code{"fo_block"} uses
-the conventional block-diagonal population-FO form used by PopED and PFIM.}
+\item{approximation}{Information approximation. `"full_gaussian"` includes
+covariance derivatives for fixed effects; `"fo_block"` uses the
+conventional block-diagonal population-FO form used by PopED and PFIM.}
 }
 \value{
 A `lity_information` object.

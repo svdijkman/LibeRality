@@ -1,3 +1,10 @@
+# LibeRality 0.2.0
+
+- Adds a public typed-contract restore boundary for safe LibeRties result
+  decoding, including Pareto optimisation results.
+- Aligns package compatibility, continuous integration, validation gates,
+  citation, and release provenance with the consolidated ecosystem release.
+
 # LibeRality 0.1.3
 
 - Allows the GUI to return its Shiny application object for hosted deployment.

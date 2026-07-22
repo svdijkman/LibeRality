@@ -111,7 +111,7 @@
   if (!is.list(x) || is.data.frame(x)) return(x)
   x <- lapply(x, .lity_restore_object)
   schema <- as.character(x$schema %||% "")
-  class <- switch(schema,
+  classes <- switch(schema,
     "liberality.design" = "lity_design",
     "liberality.arm" = "lity_arm",
     "liberality.endpoint" = "lity_endpoint",
@@ -123,10 +123,29 @@
     "liberality.information" = "lity_information",
     "liberality.evaluation" = "lity_evaluation",
     "liberality.optimisation" = "lity_optimisation",
+    "liberality.pareto" = c("lity_pareto", "lity_optimisation"),
     "liberality.simulation" = "lity_simulation",
     NULL
   )
-  if (!is.null(class)) class(x) <- class
-  if (is.null(class) && all(c("ADVAN", "PRED", "THETAS") %in% names(x))) class(x) <- "nm_model"
+  if (!is.null(classes)) class(x) <- classes
+  if (is.null(classes) && all(c("ADVAN", "PRED", "THETAS") %in% names(x))) class(x) <- "nm_model"
   x
+}
+
+#' Restore a LibeRality object from its semantic contract
+#'
+#' Remote JSON transport deliberately discards arbitrary R attributes. This
+#' function rebuilds LibeRality classes exclusively from validated
+#' `liberality.*` schema identifiers, including classes nested inside results.
+#'
+#' @param x A list decoded from a LibeRality wire result.
+#' @return The recursively reconstructed LibeRality object.
+#' @export
+lity_contract_restore <- function(x) {
+  restored <- .lity_restore_object(x)
+  schema <- if (is.list(restored)) as.character(restored$schema %||% "") else ""
+  if (!grepl("^liberality\\.", schema)) {
+    .lity_stop("`x` is not a LibeRality semantic contract.")
+  }
+  restored
 }
