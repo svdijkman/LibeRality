@@ -2,8 +2,9 @@ test_that("the LibeR dove is shared by the favicon and workbench header", {
   favicon <- system.file("assets", "favicon.svg", package = "LibeRality")
   expect_true(nzchar(favicon))
   artwork <- paste(readLines(favicon, warn = FALSE), collapse = "\n")
-  expect_match(artwork, 'id="liberality-amber"', fixed = TRUE)
-  expect_match(artwork, 'aria-label="LibeRality"', fixed = TRUE)
+  expect_lt(file.info(favicon)$size, 300000)
+  expect_match(artwork, 'id="liberality-dove"', fixed = TRUE)
+  expect_match(artwork, 'width="512"', fixed = TRUE)
   expect_match(artwork, "data:image/png;base64,", fixed = TRUE)
 
   icon_url <- "liberality-test-assets/favicon.svg"
