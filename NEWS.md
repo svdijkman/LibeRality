@@ -1,3 +1,21 @@
+# LibeRality 0.2.12
+
+- Adds a regulatory-informed first-in-human single-ascending-dose wizard
+  template with five editable active-dose cohorts, rich PK sampling, explicit
+  escalation order, and retained sentinel/placebo/review-gate planning
+  metadata. Compound-specific starting-dose justification, safety limits,
+  placebo implementation, stopping rules, and escalation governance remain
+  deliberately outside the automatic template.
+
+# LibeRality 0.2.11
+
+- Adds simulated endpoint profiles and tabular summaries to the Simulation tab,
+  including native LibeRation NCA exposure summaries where scientifically
+  applicable.
+- Marks Robustness complete after all configured scenario information has been
+  evaluated and makes feasibility results clickable with plain-language rule,
+  observed-value, limit, and violation details.
+
 # LibeRality 0.2.10
 
 - Consolidates the workflow progress row and content tabs into one navigation
