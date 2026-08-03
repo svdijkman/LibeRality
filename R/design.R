@@ -125,8 +125,11 @@ lity_schedule <- function(sampling_times, dose = 0, dose_times = 0,
 #'   the response scale.
 #' @param thresholds Ordered cut points for an ordinal outcome.
 #' @param distribution Distribution detail, such as `poisson`, `negative_binomial`,
-#'   `exponential`, or `weibull`.
-#' @param dispersion Optional count dispersion or Weibull shape.
+#'   `exponential`, or `weibull`. For a Weibull time-to-event endpoint, the
+#'   model response is the positive cumulative-hazard coefficient `lambda` in
+#'   `H(t) = lambda * t^shape`, rather than the conventional scale parameter.
+#' @param dispersion Optional count dispersion. For a Weibull endpoint this is
+#'   the fixed positive shape and must be supplied.
 #' @param target Optional clinical target definition.
 #' @param metadata Additional serializable metadata.
 #' @export
@@ -172,6 +175,9 @@ lity_endpoint <- function(name, type = c("continuous", "binary", "ordinal", "cou
     }
   }
   if (!is.null(dispersion)) dispersion <- .lity_number(dispersion, "dispersion", lower = .Machine$double.eps)
+  if (type == "time_to_event" && distribution == "weibull" && is.null(dispersion)) {
+    .lity_stop("Weibull time_to_event endpoints require a fixed positive `dispersion` (shape).")
+  }
   structure(list(
     schema = "liberality.endpoint", version = 1L,
     name = .lity_scalar(name, "name"), type = type, dvid = as.integer(dvid)[[1L]],
@@ -315,6 +321,10 @@ lity_scenario <- function(name, theta = NULL, omega = NULL, sigma = NULL,
 #' @param variables Optimisable variables.
 #' @param constraints Design constraints.
 #' @param prior_fim Optional prior Fisher information matrix.
+#' @param information_approximation Expected-information convention. The
+#'   interoperable population-FO block convention is the default; the fuller
+#'   Gaussian covariance-derivative approximation remains available as an
+#'   explicit advanced choice.
 #' @param name,description Human-readable identity.
 #' @param metadata Additional serializable metadata.
 #' @export
@@ -322,7 +332,9 @@ lity_design <- function(model, arms, endpoints = NULL,
                         population = lity_population(), scenarios = NULL,
                         alternative_models = NULL, variables = list(),
                         constraints = list(), prior_fim = NULL,
+                        information_approximation = c("fo_block", "full_gaussian"),
                         name = "Optimal design", description = "", metadata = list()) {
+  information_approximation <- match.arg(information_approximation)
   if (!inherits(model, "nm_model")) .lity_stop("`model` must be a LibeRation nm_model.")
   arms <- .lity_named_list(arms, "arms", "lity_arm")
   if (!length(arms)) .lity_stop("At least one design arm is required.")
@@ -344,13 +356,28 @@ lity_design <- function(model, arms, endpoints = NULL,
     if (nrow(prior_fim) != ncol(prior_fim) || any(!is.finite(prior_fim))) .lity_stop("`prior_fim` must be a finite square matrix.")
   }
   structure(list(
-    schema = "liberality.design", version = 1L, id = .lity_id("design"),
+    schema = "liberality.design", version = 2L, id = .lity_id("design"),
     name = .lity_scalar(name, "name"), description = .lity_scalar(description, "description", TRUE),
     model = model, arms = arms, endpoints = endpoints, population = population,
     scenarios = scenarios, alternative_models = alternative_models,
     variables = variables, constraints = constraints, prior_fim = prior_fim,
+    information_approximation = information_approximation,
     metadata = metadata, created_at = .lity_now()
   ), class = "lity_design")
+}
+
+.lity_design_upgrade <- function(design) {
+  if (!inherits(design, "lity_design") ||
+      !identical(design$schema, "liberality.design")) {
+    return(design)
+  }
+  if (is.null(design$information_approximation)) {
+    design$information_approximation <- "fo_block"
+  }
+  if (is.null(design$version) || as.integer(design$version) < 2L) {
+    design$version <- 2L
+  }
+  design
 }
 
 #' @export
@@ -359,6 +386,7 @@ print.lity_design <- function(x, ...) {
   cat("  arms:", length(x$arms), " subjects:", sum(vapply(x$arms, `[[`, numeric(1), "size")),
       " endpoints:", length(x$endpoints), " scenarios:", length(x$scenarios), "\n")
   cat("  variables:", length(x$variables), " constraints:", length(x$constraints), "\n")
+  cat("  information approximation:", x$information_approximation %||% "fo_block", "\n")
   invisible(x)
 }
 
@@ -380,6 +408,13 @@ lity_validate <- function(design, strict = FALSE) {
     if (length(unused)) warnings <- c(warnings, paste("Endpoint DVID has no observations:", paste(unused, collapse = ", ")))
     if (!length(design$model$SIGMAS$Value) && any(vapply(design$endpoints, `[[`, character(1), "type") == "continuous")) {
       warnings <- c(warnings, "Continuous endpoint has no residual SIGMA; a small numerical variance floor will be used.")
+    }
+    approximation <- design$information_approximation %||% "fo_block"
+    if (!approximation %in% c("fo_block", "full_gaussian")) {
+      errors <- c(errors, "Unknown information approximation; use `fo_block` or `full_gaussian`.")
+    }
+    if (is.null(design$information_approximation)) {
+      warnings <- c(warnings, "Legacy design has no information-approximation field; `fo_block` will be used.")
     }
     if (!sum(vapply(design$arms, `[[`, numeric(1), "size"))) errors <- c(errors, "The design has no subjects.")
     # Information-dependent constraints are evaluated by lity_evaluate().  Do
